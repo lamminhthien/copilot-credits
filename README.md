@@ -4,7 +4,7 @@ A zero-build web app that estimates **GitHub Copilot AI-credit spend** for every
 
 **Live app:** https://lamminhthien.github.io/copilot-credits/
 
-![no build](https://img.shields.io/badge/build-none-3ddc97) ![license](https://img.shields.io/badge/license-MIT-38bdf8)
+![no build](https://img.shields.io/badge/build-none-3ddc97) ![license](https://img.shields.io/badge/license-MIT-38bdf8) ![tests](https://github.com/lamminhthien/copilot-credits/actions/workflows/test.yml/badge.svg)
 
 ## Features
 
