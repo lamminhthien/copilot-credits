@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copilot Credits — estimate AI-credit usage for every Copilot model</title>
+  <meta name="description" content="Estimate GitHub Copilot AI-credit spend per model from input, cached, cache-write and output tokens. Compare every model, track your plan allowance, and check legacy premium-request multipliers.">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#080b10">
+  <meta property="og:title" content="Copilot Credits — AI-credit estimator">
+  <meta property="og:description" content="Estimate GitHub Copilot AI-credit spend for every model, compare costs, and track your plan allowance.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://lamminhthien.github.io/copilot-credits/">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#calculator" aria-label="Copilot Credits home">
+        <span class="brand-mark" aria-hidden="true">◈</span>
+        <span class="brand-text">
+          <strong>Copilot Credits</strong>
+          <span>AI-credit estimator</span>
+        </span>
+      </a>
+      <div class="header-actions">
+        <span class="data-badge" id="dataBadge">Prices verified 2026-11-21</span>
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch to light theme" title="Toggle theme">
+          <span id="themeIcon" aria-hidden="true">☾</span>
+        </button>
+      </div>
+    </div>
+    <nav class="tabs wrap" aria-label="Sections" role="tablist">
+      <button class="tab is-active" type="button" role="tab" id="tab-calculator" data-tab="calculator" aria-controls="panel-calculator" aria-selected="true">Calculator</button>
+      <button class="tab" type="button" role="tab" id="tab-compare" data-tab="compare" aria-controls="panel-compare" aria-selected="false">Compare models</button>
+      <button class="tab" type="button" role="tab" id="tab-plans" data-tab="plans" aria-controls="panel-plans" aria-selected="false">Plan allowance</button>
+      <button class="tab" type="button" role="tab" id="tab-legacy" data-tab="legacy" aria-controls="panel-legacy" aria-selected="false">Legacy plans</button>
+    </nav>
+  </header>
+
+  <main id="main" class="wrap">
+    <!-- ============================================================ CALCULATOR -->
+    <section class="panel" id="panel-calculator" role="tabpanel" aria-labelledby="tab-calculator">
+      <div class="intro">
+        <h2>Estimate one interaction</h2>
+        <p>Price any Copilot request in AI credits. <strong>1 credit = $0.01 USD.</strong> Long-context tiers are applied automatically.</p>
+      </div>
+
+      <div class="layout-2">
+        <div class="card">
+          <div class="field">
+            <label for="modelSelect">Model</label>
+            <select id="modelSelect"></select>
+            <p class="hint" id="modelMeta"></p>
+          </div>
+
+          <div class="presets" role="group" aria-label="Scenario presets">
+            <span class="presets-label">Start from a preset</span>
+            <div class="preset-row" id="presetRow"></div>
+          </div>
+
+          <div class="token-grid">
+            <div class="field">
+              <label for="inputTokens">Input tokens <span class="sub">uncached</span></label>
+              <input id="inputTokens" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="4000">
+              <p class="hint">Prompt text billed at the full input rate.</p>
+            </div>
+            <div class="field">
+              <label for="cachedTokens">Cached input <span class="sub">tokens</span></label>
+              <input id="cachedTokens" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="20000">
+              <p class="hint">Reused context billed at the cached rate.</p>
+            </div>
+            <div class="field">
+              <label for="cacheWriteTokens">Cache write <span class="sub">tokens</span></label>
+              <input id="cacheWriteTokens" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="0">
+              <p class="hint" id="cacheWriteHint">Only some models bill cache writes.</p>
+            </div>
+            <div class="field">
+              <label for="outputTokens">Output tokens</label>
+              <input id="outputTokens" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="800">
+              <p class="hint">Everything the model generates.</p>
+            </div>
+          </div>
+
+          <p class="hint token-syntax">Shorthand works: <code>1.5m</code> = 1,500,000 · <code>200k</code> = 200,000.</p>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="planSelect">Your plan</label>
+              <select id="planSelect"></select>
+            </div>
+            <div class="field" id="seatsField" hidden>
+              <label for="seatsInput">Seats</label>
+              <input id="seatsInput" type="number" min="1" max="100000" step="1" value="1">
+            </div>
+          </div>
+          <p class="hint" id="planHint"></p>
+        </div>
+
+        <div class="card result-card" id="resultCard">
+          <div class="result-head">
+            <span class="eyebrow">Estimated cost</span>
+            <span class="badge" id="tierBadge">Default tier</span>
+          </div>
+          <div class="big-number">
+            <span id="resultCredits">0</span>
+            <span class="unit">credits</span>
+          </div>
+          <div class="usd" id="resultUsd">$0.00</div>
+
+          <div class="breakdown" id="breakdown" aria-label="Cost breakdown"></div>
+
+          <div class="allowance">
+            <div class="allowance-head">
+              <span>Monthly allowance</span>
+              <strong id="allowanceText">—</strong>
+            </div>
+            <div class="bar" role="progressbar" aria-label="Monthly allowance used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="bar">
+              <div class="bar-fill" id="barFill"></div>
+            </div>
+            <div class="allowance-foot">
+              <span id="fitsText"></span>
+              <span id="pctText"></span>
+            </div>
+          </div>
+
+          <p class="note" id="calcNote"></p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>How the math works.</strong>
+        Credits = tokens ÷ 1,000,000 × the model's per-million rate, then converted at 100 credits per dollar.
+        GitHub applies the long-context tier to the whole request once prompt tokens pass the threshold.
+        Code completions and next-edit suggestions do not consume credits.
+      </div>
+    </section>
+
+    <!-- =============================================================== COMPARE -->
+    <section class="panel" id="panel-compare" role="tabpanel" aria-labelledby="tab-compare" hidden>
+      <div class="intro">
+        <h2>Compare every model</h2>
+        <p>The same token profile, priced across all models. Rows use the tier that matches your prompt size.</p>
+      </div>
+
+      <div class="card toolbar">
+        <div class="field">
+          <label for="compareSearch">Search</label>
+          <input id="compareSearch" type="search" placeholder="Claude, GPT, Gemini…" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="providerFilter">Provider</label>
+          <select id="providerFilter"></select>
+        </div>
+        <div class="field">
+          <label for="categoryFilter">Category</label>
+          <select id="categoryFilter">
+            <option value="all">All categories</option>
+            <option value="Lightweight">Lightweight</option>
+            <option value="Versatile">Versatile</option>
+            <option value="Powerful">Powerful</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sortSelect">Sort by</label>
+          <select id="sortSelect">
+            <option value="credits-asc">Cost: low to high</option>
+            <option value="credits-desc">Cost: high to low</option>
+            <option value="name">Model name</option>
+            <option value="input-asc">Input rate</option>
+            <option value="output-asc">Output rate</option>
+          </select>
+        </div>
+      </div>
+
+      <p class="profile-line" id="compareProfile"></p>
+
+      <div class="table-wrap card">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Model</th>
+              <th scope="col">Category</th>
+              <th scope="col" class="num">Input<br><span class="th-sub">$/1M</span></th>
+              <th scope="col" class="num">Cached<br><span class="th-sub">$/1M</span></th>
+              <th scope="col" class="num">Cache write<br><span class="th-sub">$/1M</span></th>
+              <th scope="col" class="num">Output<br><span class="th-sub">$/1M</span></th>
+              <th scope="col" class="num">Credits<br><span class="th-sub">this profile</span></th>
+              <th scope="col" class="num">USD</th>
+              <th scope="col" class="num">Fits<br><span class="th-sub">per allowance</span></th>
+            </tr>
+          </thead>
+          <tbody id="compareBody"></tbody>
+        </table>
+        <p class="empty" id="compareEmpty" hidden>No models match those filters.</p>
+      </div>
+      <p class="hint table-hint">“Fits” = how many requests like this your monthly allowance covers. Click a row to load it in the calculator.</p>
+    </section>
+
+    <!-- ================================================================= PLANS -->
+    <section class="panel" id="panel-plans" role="tabpanel" aria-labelledby="tab-plans" hidden>
+      <div class="intro">
+        <h2>Plan allowance</h2>
+        <p>Track a month of usage against your included AI credits. Allowances reset at 00:00 UTC on the 1st.</p>
+      </div>
+
+      <div class="plan-grid" id="planGrid" role="radiogroup" aria-label="Copilot plan"></div>
+
+      <div class="layout-2">
+        <div class="card">
+          <h3>Your month so far</h3>
+          <div class="field">
+            <label for="usedCredits">Credits used this cycle</label>
+            <input id="usedCredits" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="0">
+            <p class="hint">Find this in your GitHub billing usage dashboard.</p>
+          </div>
+          <div class="field" id="usageSeatsField" hidden>
+            <label for="usageSeats">Seats in the pool</label>
+            <input id="usageSeats" type="number" min="1" max="100000" step="1" value="1">
+          </div>
+          <button class="btn ghost" type="button" id="resetUsage">Reset usage</button>
+          <p class="hint" id="planNote"></p>
+        </div>
+
+        <div class="card summary-card">
+          <div class="result-head">
+            <span class="eyebrow">Included this month</span>
+            <span class="badge" id="summaryPlanName">Copilot Pro</span>
+          </div>
+          <div class="big-number">
+            <span id="summaryRemaining">—</span>
+            <span class="unit">credits left</span>
+          </div>
+          <div class="usd" id="summaryRemainingUsd">—</div>
+
+          <div class="bar" role="progressbar" aria-label="Plan credits used this cycle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="summaryBar">
+            <div class="bar-fill" id="summaryBarFill"></div>
+          </div>
+          <div class="allowance-foot">
+            <span id="summaryUsed">—</span>
+            <span id="summaryPct">—</span>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat">
+              <span class="stat-label">Days left</span>
+              <strong id="statDays">—</strong>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Credits / day</span>
+              <strong id="statDaily">—</strong>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Requests left</span>
+              <strong id="statRequests">—</strong>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Overage</span>
+              <strong id="statOverage">—</strong>
+            </div>
+          </div>
+
+          <p class="note" id="summaryNote"></p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <strong>Good to know.</strong>
+        Business and Enterprise credits are pooled per billing entity, so the pool is the per-seat allowance × seats.
+        Copilot Free and Student allowances exist but GitHub does not publish the amount.
+        Overage is billed at the same per-token rates — set a budget in GitHub if you want a hard stop.
+      </div>
+    </section>
+
+    <!-- ================================================================ LEGACY -->
+    <section class="panel" id="panel-legacy" role="tabpanel" aria-labelledby="tab-legacy" hidden>
+      <div class="intro">
+        <h2>Legacy annual plans</h2>
+        <p>Premium-request multipliers apply only to Pro or Pro+ subscribers who kept an existing annual plan on request-based billing after 2026-06-01.</p>
+      </div>
+
+      <div class="alert">
+        <strong>Not the current system.</strong> Monthly plans and everyone else are billed in AI credits (see the Calculator tab). GitHub does not publish legacy request allowances; the defaults below are community-reported — edit them to match your plan.
+      </div>
+
+      <div class="layout-2">
+        <div class="card">
+          <h3>Requests used</h3>
+          <div class="field">
+            <label for="legacyModel">Model</label>
+            <select id="legacyModel"></select>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="legacyUses">Interactions</label>
+              <input id="legacyUses" type="number" min="0" step="1" value="10">
+            </div>
+            <div class="field">
+              <label for="legacyAllowance">Monthly request allowance</label>
+              <input id="legacyAllowance" type="number" min="0" step="1" value="300">
+            </div>
+          </div>
+          <p class="hint" id="legacyHint"></p>
+        </div>
+
+        <div class="card summary-card">
+          <div class="result-head">
+            <span class="eyebrow">Premium requests</span>
+            <span class="badge" id="legacyMultiplierBadge">9×</span>
+          </div>
+          <div class="big-number">
+            <span id="legacyUsed">0</span>
+            <span class="unit">requests</span>
+          </div>
+          <div class="usd" id="legacyRemaining">—</div>
+          <div class="bar" role="progressbar" aria-label="Legacy premium requests used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="legacyBar">
+            <div class="bar-fill" id="legacyBarFill"></div>
+          </div>
+          <div class="allowance-foot">
+            <span id="legacyFits">—</span>
+            <span id="legacyPct">—</span>
+          </div>
+          <p class="note" id="legacyNote"></p>
+        </div>
+      </div>
+
+      <div class="table-wrap card">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Model or feature</th>
+              <th scope="col" class="num">Multiplier</th>
+              <th scope="col" class="num">Uses per <span id="legacyAllowanceLabel">300</span> requests</th>
+            </tr>
+          </thead>
+          <tbody id="legacyBody"></tbody>
+        </table>
+      </div>
+      <p class="hint table-hint">Auto model selection gets a 10% discount on legacy plans: a 1× model bills at 0.9×.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <p>
+        Built for estimating only. Actual billing depends on the tokens each Copilot feature reports.
+        Prices verified <span id="footerDate">2026-11-21</span> from
+        <a href="https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing" target="_blank" rel="noopener">GitHub's model pricing docs</a>.
+      </p>
+      <p class="footer-links">
+        <a href="https://docs.github.com/en/copilot/concepts/billing-and-usage/individuals/billing" target="_blank" rel="noopener">Plan allowances</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://docs.github.com/en/copilot/reference/copilot-billing/request-based-billing-legacy/model-multipliers-for-annual-plans" target="_blank" rel="noopener">Legacy multipliers</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://github.com/lamminhthien/copilot-credits" target="_blank" rel="noopener">Source</a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="data/models.js"></script>
+  <script src="assets/calc.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
